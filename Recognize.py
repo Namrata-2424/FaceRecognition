@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 # Load ID-Name Mapping
 df = pd.read_csv('id-names.csv')
@@ -30,6 +31,8 @@ def extract_features(face):
 
 # Open Camera
 camera = cv.VideoCapture(0)
+true_labels = []
+predicted_labels = []
 
 while cv.waitKey(1) & 0xFF != ord('q'):
     ret, img = camera.read()
@@ -46,6 +49,7 @@ while cv.waitKey(1) & 0xFF != ord('q'):
 
         # LBPH Recognition
         label, confidence = lbph.predict(face_region_resized)
+        predicted_label = label if confidence < 100 else -1 
         name = "Unknown"
 
         if label in id_names and confidence < 100:
@@ -57,6 +61,11 @@ while cv.waitKey(1) & 0xFF != ord('q'):
             label_cnn = np.argmax(cnn_prediction)
             if label_cnn in id_names and cnn_prediction[0][label_cnn] > 0.7:
                 name = id_names[label_cnn]
+                predicted_label = label_cnn
+
+        # Assuming ground truth labels are stored separately for evaluation
+        true_labels.append(label)  # Replace with actual label fetching logic
+        predicted_labels.append(predicted_label)
 
         # Draw Results
         cv.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -66,3 +75,22 @@ while cv.waitKey(1) & 0xFF != ord('q'):
 
 camera.release()
 cv.destroyAllWindows()
+
+# Save labels for evaluation
+np.save('true_labels.npy', np.array(true_labels))
+p.save('predicted_labels.npy', np.array(predicted_labels))
+
+# Compute evaluation metrics
+true_labels = np.load('true_labels.npy')
+predicted_labels = np.load('predicted_labels.npy')
+
+accuracy = accuracy_score(true_labels, predicted_labels)
+precision = precision_score(true_labels, predicted_labels, average='weighted', zero_division=1)
+recall = recall_score(true_labels, predicted_labels, average='weighted', zero_division=1)
+f1 = f1_score(true_labels, predicted_labels, average='weighted', zero_division=1)
+
+print(f'Accuracy: {accuracy:.4f}')
+print(f'Precision: {precision:.4f}')
+print(f'Recall: {recall:.4f}')
+print(f'F1-score: {f1:.4f}')
+print('\nClassification Report:\n', classification_report(true_labels, predicted_labels, zero_division=1))
