@@ -27,7 +27,7 @@ if id in id_names['id'].values:
 else:
     name = input('Please Enter you name: ')
     os.makedirs(f'faces/{id}')
-    id_names = id_names.append({'id': id, 'name': name}, ignore_index=True)
+    id_names = id_names._append({'id': id, 'name': name}, ignore_index=True)
     id_names.to_csv('id-names.csv')
 
 print("\nLet's capture!")
